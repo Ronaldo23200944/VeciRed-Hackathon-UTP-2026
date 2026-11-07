@@ -1,6 +1,6 @@
 /* VeciRed — interfaz mobile-first. El backend y el modo offline se integran por separado. */
 :root { --brand:#0b786b; --brand-dark:#075e56; --ink:#152c36; --muted:#637680; --surface:#fff; --line:#e6eded; --background:#f4f7f6; --mint:#e8f7f2; }
-.app-shell { max-width: 680px; min-height: 100dvh; margin: auto; background: var(--background); padding-bottom: calc(92px + env(safe-area-inset-bottom)); box-shadow: 0 0 42px #142b3010; }
+.app-shell { max-width: 680px; min-height: 100dvh; margin: auto; background: var(--background); padding-bottom: calc(104px + env(safe-area-inset-bottom)); box-shadow: 0 0 42px #142b3010; }
 .app-content { min-height: calc(100dvh - 160px); }
 .container { padding-left: 18px; padding-right: 18px; }
 .topbar { height: 68px; padding: 0 18px; display:flex; justify-content:space-between; align-items:center; gap: 10px; position:sticky; top:0; z-index:20; background:#fffffff2; backdrop-filter: blur(16px); border-bottom: 1px solid var(--line); }
@@ -47,11 +47,60 @@
 .tutorial-banner small { font-size:11px; color:#597b71; }
 .tutorial-banner>span:last-child { font-size:28px; }
 .demo-disclaimer { background:#edf0f1; border-radius:12px; color:#60747c; font-size:11px; line-height:1.5; padding:12px; margin:15px 0 20px; }
-.bottom-nav { position:fixed; z-index:30; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:680px; background:white; border-top:1px solid var(--line); box-shadow:0 -6px 20px #17383b12; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); padding:6px 4px calc(9px + env(safe-area-inset-bottom)); }
-.bottom-nav-item { border:0; background:none; color:#778994; font-size:10px; font-weight:750; min-width:0; display:flex; flex-direction:column; align-items:center; gap:4px; padding:5px 0; }
-.bottom-nav-item.active { color:var(--brand); }
-.bottom-nav-icon { font-size:23px; line-height:26px; font-weight:850; display:grid; place-items:center; }
-.bottom-nav-item.is-publish .bottom-nav-icon { width:33px; height:33px; border-radius:11px; background:var(--brand); color:white; margin-top:-5px; font-size:25px; }
+/* Navegación inferior: cinco accesos cómodos para pulgar y pantallas pequeñas. */
+.bottom-nav {
+  position: fixed;
+  z-index: 30;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 680px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: end;
+  background: #fff;
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -8px 24px #17383b12;
+  padding: 7px 5px calc(9px + env(safe-area-inset-bottom));
+}
+.bottom-nav-item {
+  position: relative;
+  min-width: 0;
+  min-height: 61px;
+  border: 0;
+  background: transparent;
+  color: #677982;
+  font-size: 10px;
+  font-weight: 750;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px 0 4px;
+  -webkit-tap-highlight-color: transparent;
+}
+.bottom-nav-item.active { color: var(--brand); }
+.bottom-nav-item:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; border-radius: 10px; }
+.bottom-nav-icon { display: grid; place-items: center; width: 28px; height: 28px; }
+.bottom-nav-icon svg { width: 24px; height: 24px; }
+.bottom-nav-label { white-space: nowrap; line-height: 1.25; }
+.bottom-nav-item.is-publish { color: var(--brand-dark); justify-content: flex-end; padding-bottom: 4px; }
+.bottom-nav-item.is-publish .bottom-nav-icon {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 53px;
+  height: 53px;
+  border: 4px solid white;
+  border-radius: 50%;
+  background: var(--brand);
+  color: white;
+  box-shadow: 0 5px 14px #075e5633;
+}
+.bottom-nav-item.is-publish .bottom-nav-icon svg { width: 27px; height: 27px; stroke-width: 2.3; }
 .page { padding-top:24px; padding-bottom:32px; }
 .page-heading { margin-bottom:19px; }
 .page-heading h1 { font-size:27px; line-height:1.2; letter-spacing:-.8px; margin:6px 0 8px; }
@@ -130,11 +179,10 @@
 @media (max-width:390px) { .topbar { padding:0 13px; } .brand { font-size:21px; } .connection-state { font-size:10px; padding:7px; } .container { padding-left:13px; padding-right:13px; } .home-hero { margin-left:12px; margin-right:12px; } .home-categories { gap:5px; } .home-category { font-size:9px; } .home-category span { width:33px; height:33px; font-size:20px; } .offer-card-visual { flex-basis:57px; height:70px; } .offer-card-meta { font-size:10px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior:auto !important; transition-duration:0.01ms !important; } }
 
-/* Navegación de seis accesos, incluido el nuevo mapa reutilizable. */
-.bottom-nav { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-.bottom-nav-item { font-size: 9px; }
-.bottom-nav-icon { font-size: 21px; }
 .hero-map-link { display:block; margin-top:12px; color:white; border:1px solid #ffffff91; padding:10px 13px; border-radius:12px; background:#ffffff18; font-size:12px; font-weight:750; }
 .map-inline-button { border:1px solid #b9d7cf; padding:7px 10px; background:#eaf6f1; color:#0b786b; border-radius:9px; font-size:12px; font-weight:800; }
 .offer-map-link { margin:0 0 6px; }
-@media (max-width: 390px) { .bottom-nav-item { font-size: 8.5px; letter-spacing: -.15px; } .bottom-nav-icon { font-size: 19px; } }
+
+
+.pending-actions { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; margin-bottom:16px; }
+.pending-actions button { width:min(100%,280px); }

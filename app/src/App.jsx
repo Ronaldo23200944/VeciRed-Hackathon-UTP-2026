@@ -10,8 +10,17 @@ import MapPage from './features/map/MapPage'
 import { CATEGORIAS, ICONOS, OFERTAS_DEMO } from './data/demoData'
 import './App.css'
 
-function PendingModule({ titulo, icono, texto, responsable, onBack }) {
-  return <section className="pending-module container"><div className="pending-icon" aria-hidden="true">{icono}</div><h1>{titulo}</h1><p>{texto}</p><div className="info-panel">Este módulo será implementado por el {responsable}. Todavía no realiza operaciones reales.</div><button className="button-outline" type="button" onClick={onBack}>Volver al inicio</button></section>
+function PendingModule({ titulo, icono, texto, responsable, onBack, onEmergency }) {
+  return <section className="pending-module container">
+    <div className="pending-icon" aria-hidden="true">{icono}</div>
+    <h1>{titulo}</h1>
+    <p>{texto}</p>
+    <div className="info-panel">Este módulo será implementado por el {responsable}. Todavía no realiza operaciones reales.</div>
+    <div className="pending-actions">
+      {onEmergency && <button className="button-primary" type="button" onClick={onEmergency}>🚨 Ver modo emergencia</button>}
+      <button className="button-outline" type="button" onClick={onBack}>Volver al inicio</button>
+    </div>
+  </section>
 }
 
 export default function App() {
@@ -65,7 +74,7 @@ export default function App() {
       {pantalla === 'mapa' && <MapPage ofertas={ofertas} categoria={categoria} onCategoria={setCategoria} zona={zona} onZona={setZona} busqueda={busqueda} onBusqueda={setBusqueda} onOpen={abrirOferta} onPublish={() => navegar('publicar')} enLinea={enLinea} destacadoId={mapaDestacadoId} />}
       {pantalla === 'cuenta' && <Account onBack={() => navegar('inicio')} onTutorial={() => navegar('tutorial')} />}
       {pantalla === 'tutorial' && <Tutorial onBack={() => navegar('cuenta')} onExplore={() => navegar('explorar')} />}
-      {pantalla === 'solidaridad' && <PendingModule titulo="Red de solidaridad" icono="🤝" texto="Préstamos, donaciones, favores e intercambios con personas de tu comunidad." responsable="Integrante 3" onBack={() => navegar('inicio')}/>}
+      {pantalla === 'solidaridad' && <PendingModule titulo="Red de solidaridad" icono="🤝" texto="Préstamos, donaciones, favores e intercambios con personas de tu comunidad." responsable="Integrante 3" onBack={() => navegar('inicio')} onEmergency={() => navegar('emergencia')} />}
       {pantalla === 'emergencia' && <PendingModule titulo="Modo emergencia" icono="🚨" texto="Recursos y solicitudes de apoyo ante situaciones críticas. Esta vista todavía no envía alertas." responsable="Integrante 3" onBack={() => navegar('inicio')}/>}
     </main>
     <BottomNav actual={esNav ? pantalla : ''} onNavigate={navegar}/>
