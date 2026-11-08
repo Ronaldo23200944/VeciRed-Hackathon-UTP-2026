@@ -3,6 +3,7 @@ import { CATEGORIAS, ZONAS } from '../../data/demoData'
 import { subirImagenes } from '../../api/veciredApi'
 import {
   cargarMisPublicaciones,
+  eliminarMiPublicacion,
   editarMiPublicacion,
   finalizarMiPublicacion,
   pausarMiPublicacion,
@@ -71,7 +72,13 @@ export default function MyPublications({ onBack, onChanged }) {
 
   function actualizarLocal(item) {
     setItems((actuales) => actuales.map((actual) => actual.id === item.id ? item : actual))
-    onChanged?.()
+    // La pantalla permanece abierta y el estado se actualiza sin recargar.
+    // El componente principal necesita recibir el registro actualizado.
+    try {
+      onChanged?.(item)
+    } catch (error) {
+      console.warn('No se pudo refrescar el catálogo local:', error)
+    }
   }
 
   async function guardarCambios(evento) {
@@ -117,9 +124,44 @@ export default function MyPublications({ onBack, onChanged }) {
       if (accion === 'pausar') respuesta = await pausarMiPublicacion(item.id)
       if (accion === 'reactivar') respuesta = await reactivarMiPublicacion(item.id)
       actualizarLocal(respuesta.item)
-      setAviso('Estado de la publicación actualizado.')
+      setAviso(accion === 'finalizar'
+        ? 'Acuerdo concretado. Puedes seguir gestionando tus publicaciones aquí.'
+        : 'Estado de la publicación actualizado.')
     } catch (err) {
       setError(err.message)
+    } finally {
+      setOcupado('')
+    }
+  }
+
+  async function eliminarDefinitivamente(item) {
+    if (ocupado) return
+    if (!navigator.onLine) {
+      setError('Necesitas conexión para eliminar una publicación del servidor.')
+      return
+    }
+    if (!window.confirm(`¿Eliminar definitivamente «${item.title}»? Se borrarán la publicación y sus reseñas asociadas. Esta acción no se puede deshacer.`)) return
+
+    setOcupado(item.id)
+    setError('')
+    setAviso('')
+    try {
+      await eliminarMiPublicacion(item.id)
+      setItems((actuales) => actuales.filter((actual) => actual.id !== item.id))
+      if (editandoId === item.id) {
+        setEditandoId(null)
+        setForm(null)
+        setFotos([])
+      }
+      setAviso('Publicación eliminada definitivamente.')
+      // El catálogo elimina también esta publicación de su lista local.
+      try {
+        onChanged?.({ ...item, status: 'eliminado' })
+      } catch (error) {
+        console.warn('No se pudo actualizar el catálogo local tras eliminar:', error)
+      }
+    } catch (err) {
+      setError(err.message || 'No se pudo eliminar la publicación.')
     } finally {
       setOcupado('')
     }
@@ -190,10 +232,11 @@ export default function MyPublications({ onBack, onChanged }) {
               <button type="button" className="button-outline" disabled={Boolean(ocupado)} onClick={() => iniciarEdicion(item)}>Editar</button>
               {item.status === 'activo' && <button type="button" className="button-outline" disabled={Boolean(ocupado)} onClick={() => actuar(item, 'pausar')}>Pausar</button>}
               {item.status !== 'activo' && <button type="button" className="button-outline" disabled={Boolean(ocupado)} onClick={() => actuar(item, 'reactivar')}>Reactivar</button>}
+              <button type="button" className="button-outline vecired-delete" disabled={Boolean(ocupado)} onClick={() => eliminarDefinitivamente(item)}>Eliminar publicación</button>
             </div>
           )}
           {editandoId !== item.id && item.status !== 'archivado' && item.status !== 'agotado' && (
-            <div style={{ marginTop: 15 }}>
+            <div className="vecired-concretar">
               <label className="form-label">Acuerdo concretado
                 <select value={tipoPorId[item.id] || 'venta'} onChange={(e) => setTipoPorId((anterior) => ({ ...anterior, [item.id]: e.target.value }))}>
                   {finalizaciones.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}

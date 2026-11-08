@@ -264,7 +264,7 @@ export default function Account({ onBack, onTutorial, onMyItems, mensajeAcceso =
             ) : (
               <div className="account-actions">
                 <button className="button-outline" type="button" onClick={() => setEdicion({ full_name: perfil.full_name || '', phone: perfil.phone || '', neighborhood: perfil.neighborhood || 'Cercado' })}>Editar datos</button>
-                <button className="button-primary" type="button" onClick={onMyItems}>Mis publicaciones</button>
+                <button className="button-outline" type="button" onClick={onMyItems}>Mis publicaciones</button>
                 <button className="button-outline" type="button" onClick={salir} disabled={ocupado}>Cerrar sesión</button>
               </div>
             )}

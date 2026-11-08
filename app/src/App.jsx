@@ -385,14 +385,14 @@ export default function App() {
       ...datosOferta
     } = oferta
 
-    // Al estar sin internet, solo pueden quedar pendientes los textos.
-    // Las fotografías requieren un envío real a /api/uploads.
-    if (!navigator.onLine) {
-      if (archivos.length > 0) {
-        throw new Error('Para publicar con fotografías necesitas conexión. Retira las fotos o vuelve a intentarlo al conectarte.')
-      }
+    // Toda publicación nueva requiere al menos una fotografía.
+    if (!Array.isArray(archivos) || archivos.length < 1 || archivos.length > 3) {
+      throw new Error('Selecciona de una a tres fotografías para publicar.')
+    }
 
-      const registro = await saveToOutbox(aPublicacion(datosOferta))
+    // IndexedDB guarda los archivos pendientes si no hay conexión.
+    if (!navigator.onLine) {
+      const registro = await saveToOutbox(aPublicacion(datosOferta), archivos)
       const pendiente = aOfertaPendiente(registro)
       setOfertas((anteriores) => [
         pendiente,
@@ -406,7 +406,7 @@ export default function App() {
       setZona('Todas las zonas')
       setBusqueda('')
       navegar('explorar')
-      setAviso('Publicación guardada en este dispositivo. Se enviará cuando vuelva la conexión e inicies sesión.')
+      setAviso('Publicación y fotos guardadas en este dispositivo. Se sincronizarán al recuperar Internet.')
       return
     }
 

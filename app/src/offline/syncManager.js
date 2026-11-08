@@ -1,4 +1,5 @@
 import { initDB, OUTBOX_STORE } from './db.js'
+import { subirImagenes } from '../api/veciredApi'
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/$/, '')
 const TOKEN_KEY = 'vecired_token'
@@ -25,9 +26,9 @@ function generarClientId() {
   return `vecired-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
-// Guarda datos de una publicación SIN archivos, y SIN guardar contraseñas ni JWT.
-// Se conserva en IndexedDB hasta que /api/sync/batch confirma la operación.
-export async function saveToOutbox(data) {
+// Guarda el anuncio y sus fotos en IndexedDB, nunca contraseñas ni JWT.
+// Las fotos se subirán al reconectarse antes de confirmar /api/sync/batch.
+export async function saveToOutbox(data, archivos = []) {
   const owner_id = obtenerIdVecinoActual()
   if (!owner_id) {
     throw new Error('Debes iniciar sesión para guardar publicaciones sin conexión.')
@@ -35,8 +36,14 @@ export async function saveToOutbox(data) {
   if (!data?.title?.trim() || !data?.description?.trim() || !data?.neighborhood) {
     throw new Error('Completa título, descripción y zona antes de guardar.')
   }
-  if (data.images?.length) {
-    throw new Error('No se admiten fotografías en la cola sin conexión.')
+  if (!Array.isArray(archivos) || archivos.length < 1 || archivos.length > 3) {
+    throw new Error('Para publicar necesitas entre una y tres fotografías.')
+  }
+  if (archivos.some((archivo) =>
+    !['image/jpeg', 'image/png', 'image/webp'].includes(archivo.type) ||
+    archivo.size > 5 * 1024 * 1024 || archivo.size === 0
+  )) {
+    throw new Error('Solo puedes guardar fotos JPG, PNG o WebP de hasta 5 MB.')
   }
 
   const client_id = generarClientId()
@@ -46,6 +53,12 @@ export async function saveToOutbox(data) {
     owner_id,
     entity: 'items',
     action: 'create',
+    // File/Blob admite clonación estructurada en IndexedDB.
+    archivos: archivos.map((archivo) => ({
+      nombre: archivo.name,
+      tipo: archivo.type,
+      datos: archivo,
+    })),
     data: {
       title: data.title.trim(),
       description: data.description.trim(),
@@ -93,43 +106,69 @@ export async function sincronizarPendientes() {
       return { sincronizadas: 0, fallidas: 0, pendientes: 0 }
     }
 
-    // Por lotes pequeños para evitar solicitudes demasiado grandes.
+    // Las fotografías se suben al reconectar; el envío es idempotente por client_id.
+    // El archivo local solo se descarta después de que el servidor confirma el anuncio.
     let sincronizadas = 0
     let fallidas = 0
-    for (let pos = 0; pos < entradas.length; pos += 20) {
-      const lote = entradas.slice(pos, pos + 20)
-      const respuesta = await fetch(`${API_URL}/api/sync/batch`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          queue: lote.map(({ action, entity, data, client_id }) => ({
-            action, entity, data, client_id,
-          })),
-        }),
-      })
-      const contenido = await respuesta.json().catch(() => null)
-      if (!respuesta.ok) {
-        throw new Error(contenido?.error || `Sincronización fallida (HTTP ${respuesta.status}).`)
-      }
-
-      const confirmadas = new Set([
-        ...(contenido?.results?.synced || []),
-        ...(contenido?.results?.duplicatesIgnored || []),
-      ].map((item) => item.client_id).filter(Boolean))
-
-      for (const entrada of lote) {
-        if (confirmadas.has(entrada.client_id)) {
-          // No borrar si el usuario cambió de cuenta durante el envío.
-          if (obtenerIdVecinoActual() === owner_id) {
-            await db.delete(OUTBOX_STORE, entrada.id)
-            sincronizadas += 1
+    for (const entrada of entradas) {
+      if (obtenerIdVecinoActual() !== owner_id) break
+      let pendiente = entrada
+      try {
+        if (pendiente.archivos?.length && !pendiente.data?.images?.length) {
+          const fotos = pendiente.archivos.map((archivo) =>
+            new File([archivo.datos], archivo.nombre, { type: archivo.tipo })
+          )
+          const images = await subirImagenes(fotos)
+          if (!Array.isArray(images) || images.length !== fotos.length) {
+            throw new Error('El servidor no confirmó las fotografías de la cola.')
           }
+          // Guardar las rutas antes de crear el anuncio, para poder reintentar
+          // sin subir otra vez las fotografías si se interrumpe la conexión.
+          pendiente = {
+            ...pendiente,
+            data: { ...pendiente.data, images },
+            archivos: [],
+          }
+          await db.put(OUTBOX_STORE, pendiente)
+        }
+        if (!pendiente.data?.images?.length) {
+          // Se conserva una entrada antigua sin fotos para que no se pierda.
+          fallidas += 1
+          continue
+        }
+        if (obtenerIdVecinoActual() !== owner_id) break
+        const respuesta = await fetch(`${API_URL}/api/sync/batch`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            queue: [{
+              action: pendiente.action,
+              entity: pendiente.entity,
+              data: pendiente.data,
+              client_id: pendiente.client_id,
+            }],
+          }),
+        })
+        const contenido = await respuesta.json().catch(() => null)
+        if (!respuesta.ok) {
+          throw new Error(contenido?.error || `Sincronización fallida (HTTP ${respuesta.status}).`)
+        }
+        const confirmadas = new Set([
+          ...(contenido?.results?.synced || []),
+          ...(contenido?.results?.duplicatesIgnored || []),
+        ].map((item) => item.client_id).filter(Boolean))
+        if (confirmadas.has(pendiente.client_id) && obtenerIdVecinoActual() === owner_id) {
+          await db.delete(OUTBOX_STORE, pendiente.id)
+          sincronizadas += 1
         } else {
           fallidas += 1
         }
+      } catch (error) {
+        console.warn('La publicación seguirá pendiente de sincronización:', error)
+        fallidas += 1
       }
     }
     return { sincronizadas, fallidas, pendientes: (await db.getAll(OUTBOX_STORE)).filter((r) => r.owner_id === owner_id).length }

@@ -10,6 +10,7 @@ import { query } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
+const UPLOAD_IMAGE_PATTERN = /^\/uploads\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.webp$/i;
 
 /**
  * POST /api/sync/batch
@@ -34,6 +35,12 @@ router.post('/batch', requireAuth, async (req, res) => {
 
     try {
       if (entity === 'items' && action === 'create') {
+        const images = data?.images;
+        if (!Array.isArray(images) || images.length < 1 || images.length > 3 ||
+            !images.every((image) => typeof image === 'string' && UPLOAD_IMAGE_PATTERN.test(image))) {
+          results.failed.push({ client_id, entity, error: 'Se requiere al menos una fotografía válida.' });
+          continue;
+        }
         // Idempotencia: Verificar si ya existe con ese client_id
         if (client_id) {
           const check = await query('SELECT id FROM items WHERE client_id = $1', [client_id]);
@@ -47,8 +54,8 @@ router.post('/batch', requireAuth, async (req, res) => {
           `INSERT INTO items (
             user_id, type, title, description, category, price_range, currency,
             availability, neighborhood, latitude, longitude, phone_contact,
-            emergency_service, client_id
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            emergency_service, client_id, images
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15::text[])
           RETURNING id, title;`,
           [
             req.user.id,
@@ -65,6 +72,7 @@ router.post('/batch', requireAuth, async (req, res) => {
             data.phone_contact || req.user.phone || '',
             Boolean(data.emergency_service),
             client_id || null,
+            images,
           ]
         );
 

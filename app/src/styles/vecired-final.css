@@ -169,3 +169,40 @@
 /* Marcador SVG coherente en tarjetas y ficha de publicación. */
 .vecired-location, .offer-map-link { display: inline-flex; align-items: center; gap: 5px; }
 .vecired-location svg, .offer-map-link svg { flex: 0 0 16px; width: 16px; height: 16px; }
+
+/* Últimos retoques: distancia en Acuerdo concretado y eliminación segura. */
+.vecired-concretar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid #d9e6e3;
+}
+.vecired-concretar .form-label {
+  width: 100%;
+  display: block;
+  margin: 0;
+}
+.vecired-concretar .form-label select {
+  width: 100%;
+  margin-top: 9px;
+}
+.vecired-concretar .button-primary {
+  margin-top: 0;
+  align-self: flex-start;
+}
+.vecired-item-actions .vecired-delete {
+  color: #a42b2b;
+  border-color: #c86a6a;
+  background: transparent;
+}
+.vecired-item-actions .vecired-delete:hover {
+  color: #8b1d1d;
+  background: #fff2f1;
+}
+.vecired-item-actions .vecired-delete:focus-visible {
+  outline: 3px solid #e09a9a;
+  outline-offset: 2px;
+}

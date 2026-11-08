@@ -110,6 +110,11 @@ export default function PublishWizard({ onClose, onCreate, enLinea = true }) {
       return
     }
 
+    if (paso === 2 && archivos.length === 0) {
+      setError('Añade al menos una fotografía para continuar.')
+      return
+    }
+
     setError('')
     setPaso((actual) => Math.min(3, actual + 1))
   }
@@ -121,6 +126,11 @@ export default function PublishWizard({ onClose, onCreate, enLinea = true }) {
     // La confirmación final es obligatoria y explícita.
     if (paso !== 3) {
       siguiente()
+      return
+    }
+    if (archivos.length === 0) {
+      setRevisando(false)
+      setError('Debes añadir al menos una fotografía antes de publicar.')
       return
     }
     if (!revisando) {
@@ -262,12 +272,12 @@ export default function PublishWizard({ onClose, onCreate, enLinea = true }) {
               </label>
 
               <div className="vecired-fotos-paso">
-                <strong>Fotografías del producto o servicio (opcional, máximo 3)</strong>
+                <strong>Fotografías del producto o servicio (obligatorio, de 1 a 3)</strong>
                 <PhotoFileField
                   multiple
                   count={archivos.length}
                   onChange={seleccionarImagenes}
-                  disabled={!enLinea || archivos.length >= 3 || guardando}
+                  disabled={archivos.length >= 3 || guardando}
                 />
                 <p className="hint">
                   Puedes seleccionar JPG, PNG o WebP; hasta 5 MB por foto.
@@ -275,8 +285,8 @@ export default function PublishWizard({ onClose, onCreate, enLinea = true }) {
                 </p>
                 {!enLinea && (
                   <p className="hint" role="status">
-                    Estás sin conexión. Las fotos se añadirán cuando recuperes internet;
-                    por ahora solo podrás guardar texto pendiente.
+                    Sin conexión: las fotografías se guardarán temporalmente en este dispositivo
+                    y se subirán al servidor cuando vuelva Internet e inicies sesión.
                   </p>
                 )}
                 <VistasPrevias vistas={vistas} quitarImagen={quitarImagen} guardando={guardando} />
@@ -317,24 +327,24 @@ export default function PublishWizard({ onClose, onCreate, enLinea = true }) {
               </label>
 
               <div className="form-label">
-                Fotografías (máximo 3)
+                Fotografías (obligatorio, de 1 a 3)
                 <PhotoFileField
                   multiple
                   count={archivos.length}
                   onChange={seleccionarImagenes}
-                  disabled={!enLinea || archivos.length >= 3 || guardando}
+                  disabled={archivos.length >= 3 || guardando}
                 />
               </div>
 
               <p className="hint">
                 JPG, PNG o WebP. Máximo 5 MB por fotografía.
-                Las imágenes son opcionales.
+                Debes incluir al menos una fotografía.
               </p>
 
               {!enLinea && (
                 <p className="hint" role="status">
-                  Sin conexión: puedes guardar esta publicación sin fotos.
-                  Quedará pendiente en este dispositivo y se enviará al recuperar la conexión.
+                  Sin conexión: las fotos y el anuncio quedarán guardados en este dispositivo.
+                  Se sincronizarán al recuperar la conexión.
                 </p>
               )}
 
@@ -360,7 +370,7 @@ export default function PublishWizard({ onClose, onCreate, enLinea = true }) {
                 <div><dt>Fotografías</dt><dd>{archivos.length} de 3</dd></div>
               </dl>
               <VistasPrevias vistas={vistas} quitarImagen={quitarImagen} guardando={guardando} />
-              {!enLinea && <p className="hint">Sin conexión: se guardará como publicación pendiente, sin fotografías.</p>}
+              {!enLinea && <p className="hint">Sin conexión: el anuncio y sus fotografías quedarán pendientes de sincronización.</p>}
               <div className="info-panel">Comprueba los datos. Puedes volver a editarlos sin perder lo escrito.</div>
             </div>
           )}
@@ -393,12 +403,19 @@ export default function PublishWizard({ onClose, onCreate, enLinea = true }) {
                 type="button"
                 onClick={siguiente}
               >
-                {paso === 2 ? 'Continuar a barrio, precio y fotos →' : 'Continuar →'}
+                Continuar
               </button>
             ) : !revisando ? (
               <button className="button-primary" type="button"
                 disabled={guardando}
-                onClick={() => { setRevisando(true); setError('') }}>
+                onClick={() => {
+                  if (archivos.length === 0) {
+                    setError('Añade al menos una fotografía para revisar la publicación.')
+                    return
+                  }
+                  setRevisando(true)
+                  setError('')
+                }}>
                 Revisar antes de publicar →
               </button>
             ) : (

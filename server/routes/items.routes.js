@@ -12,6 +12,7 @@ const UPLOAD_IMAGE_PATTERN =
 function imagenesValidas(images) {
   return (
     Array.isArray(images) &&
+    images.length >= 1 &&
     images.length <= 3 &&
     images.every(
       (image) =>
@@ -232,7 +233,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     if (!imagenesValidas(images)) {
       return res.status(400).json({
-        error: 'Se permiten hasta 3 imágenes válidas de VeciRed.',
+        error: 'Para publicar debes añadir entre una y tres fotografías válidas de VeciRed.',
       });
     }
 
@@ -338,7 +339,7 @@ router.put('/:id', requireAuth, async (req, res) => {
       !imagenesValidas(images)
     ) {
       return res.status(400).json({
-        error: 'Se permiten hasta 3 imágenes válidas de VeciRed.',
+        error: 'Para publicar debes añadir entre una y tres fotografías válidas de VeciRed.',
       });
     }
 
